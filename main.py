@@ -1,4 +1,5 @@
 import time
+import csv
 from tentacle_pi.TSL2561 import TSL2561
 from Adafruit_BME280 import *
 from ctypes import *
@@ -120,4 +121,11 @@ while True:
     print 'Humidity  = {0:0.2f} %'.format(humidity)
     print "lux %s" % tsl.lux()
     print "________________________"
+    with open('names.csv', 'w') as csvfile:
+        fieldnames = ['timestamp', 'gX', 'gY', 'gZ', 'aX', 'aY', 'aZ', 'mX', 'mY', 'mZ', 'tempC', 'hPa', 'humidity', 'lux']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        writer.writerow({'timestamp': cgx, 'gX': cgx, 'gY': cgy, 'gZ': cgz, 'aX': cax, 'aY': cay, 'aZ': caz, 'mX': cmx, 'mY': cmy, 'mZ': cmz, 'tempC': degrees, 'hPa': hectopascals, 'humidity': humidity, 'lux': tsl.lux()})
+
     time.sleep(1)
