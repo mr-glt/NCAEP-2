@@ -6,11 +6,6 @@ from ctypes import *
 
 sensor = BME280(mode=BME280_OSAMPLE_8)
 
-degrees = sensor.read_temperature()
-pascals = sensor.read_pressure()
-hectopascals = pascals / 100
-
-humidity = sensor.read_humidity()
 tsl = TSL2561(0x39,"/dev/i2c-1")
 tsl.enable_autogain()
 tsl.set_time(0x00)
@@ -69,6 +64,11 @@ lib.lsm9ds1_calcAccel.restype = c_float
 lib.lsm9ds1_calcMag.argtypes = [c_void_p, c_float]
 lib.lsm9ds1_calcMag.restype = c_float
 
+#This is bad....I'm sorry
+def pres2alt(pressure):
+    alt = 44331.5 - 4946.62 * (pressure*100) ** (0.190263)
+    return alt
+
 if __name__ == "__main__":
     imu = lib.lsm9ds1_create()
     lib.lsm9ds1_begin(imu)
@@ -112,6 +112,12 @@ while True:
     cmy = lib.lsm9ds1_calcMag(imu, my)
     cmz = lib.lsm9ds1_calcMag(imu, mz)
 
+    degrees = sensor.read_temperature()
+    pascals = sensor.read_pressure()
+    hectopascals = pascals / 100
+
+    humidity = sensor.read_humidity()
+
     print("Gyro: %f, %f, %f [deg/s]" % (cgx, cgy, cgz))
     print("Accel: %f, %f, %f [Gs]" % (cax, cay, caz))
     print("Mag: %f, %f, %f [gauss]" % (cmx, cmy, cmz))
@@ -120,12 +126,13 @@ while True:
     print 'Pressure  = {0:0.2f} hPa'.format(hectopascals)
     print 'Humidity  = {0:0.2f} %'.format(humidity)
     print "lux %s" % tsl.lux()
+    print "Computed Altitude %s" % pres2alt(hectopascals)
     print "________________________"
-    with open('names.csv', 'w') as csvfile:
-        fieldnames = ['timestamp', 'gX', 'gY', 'gZ', 'aX', 'aY', 'aZ', 'mX', 'mY', 'mZ', 'tempC', 'hPa', 'humidity', 'lux']
+    with open('datamain.csv', 'a') as csvfile:
+        fieldnames = ['timestamp', 'gX', 'gY', 'gZ', 'aX', 'aY', 'aZ', 'mX', 'mY', 'mZ', 'tempC', 'hPa', 'humidity', 'lux', 'alt']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        writer.writeheader()
-        writer.writerow({'timestamp': cgx, 'gX': cgx, 'gY': cgy, 'gZ': cgz, 'aX': cax, 'aY': cay, 'aZ': caz, 'mX': cmx, 'mY': cmy, 'mZ': cmz, 'tempC': degrees, 'hPa': hectopascals, 'humidity': humidity, 'lux': tsl.lux()})
+        #writer.writeheader()
+        writer.writerow({'timestamp': cgx, 'gX': cgx, 'gY': cgy, 'gZ': cgz, 'aX': cax, 'aY': cay, 'aZ': caz, 'mX': cmx, 'mY': cmy, 'mZ': cmz, 'tempC': degrees, 'hPa': hectopascals, 'humidity': humidity, 'lux': tsl.lux(), 'alt': pres2alt(hectopascals)})
 
-    time.sleep(1)
+    time.sleep(0.5)
